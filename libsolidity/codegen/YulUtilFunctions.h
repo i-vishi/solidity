@@ -204,7 +204,7 @@ public:
 
 	/// @returns the name of a function that pushes an element to a storage array
 	/// signature: (array, value)
-	std::string storageArrayPushFunction(ArrayType const& _type);
+	std::string storageArrayPushFunction(ArrayType const& _type, TypePointer _fromType = nullptr);
 
 	/// @returns the name of a function that pushes the base type's zero element to a storage array and returns storage slot and offset of the added element.
 	/// signature: (array) -> slot, offset

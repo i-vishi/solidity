@@ -1312,9 +1312,18 @@ void IRGeneratorForStatements::endVisit(FunctionCall const& _functionCall)
 		}
 		else
 		{
-			IRVariable argument = convert(*arguments.front(), *arrayType.baseType());
+			IRVariable argument =
+				arrayType.baseType()->isValueType() ?
+				convert(*arguments.front(), *arrayType.baseType()) :
+				*arguments.front();
+
+			string arrayPushFunction =
+				arrayType.baseType()->isValueType() ?
+				m_utils.storageArrayPushFunction(arrayType) :
+				m_utils.storageArrayPushFunction(arrayType, arguments.front()->annotation().type);
+
 			m_code <<
-				m_utils.storageArrayPushFunction(arrayType) <<
+				arrayPushFunction <<
 				"(" <<
 				IRVariable(_functionCall.expression()).commaSeparatedList() <<
 				", " <<
