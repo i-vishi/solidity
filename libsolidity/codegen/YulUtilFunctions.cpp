@@ -1384,11 +1384,19 @@ string YulUtilFunctions::storageArrayPushFunction(ArrayType const& _type, TypePo
 {
 	solAssert(_type.location() == DataLocation::Storage, "");
 	solAssert(_type.isDynamicallySized(), "");
+	if (_fromType && _fromType->isValueType())
+		solUnimplementedAssert(*_fromType == *_type.baseType(), "");
+	if (!_fromType)
+		_fromType = _type.baseType();
 
-	string functionName = "array_push_" + _type.identifier();
+	string functionName =
+		string{"array_push_from_"} +
+		_fromType->identifier() +
+		"_to_" +
+		_type.identifier();
 	return m_functionCollector.createFunction(functionName, [&]() {
 		return Whiskers(R"(
-			function <functionName>(array, value) {
+			function <functionName>(array, <values>) {
 				<?isByteArray>
 					let data := sload(array)
 					let oldLen := <extractByteArrayLength>(data)
@@ -1396,7 +1404,7 @@ string YulUtilFunctions::storageArrayPushFunction(ArrayType const& _type, TypePo
 
 					switch gt(oldLen, 31)
 					case 0 {
-						value := byte(0, value)
+						let value := byte(0, <values>)
 						switch oldLen
 						case 31 {
 							// Here we have special case when array switches from short array to long array
@@ -1419,17 +1427,18 @@ string YulUtilFunctions::storageArrayPushFunction(ArrayType const& _type, TypePo
 					default {
 						sstore(array, add(data, 2))
 						let slot, offset := <indexAccess>(array, oldLen)
-						<storeValue>(slot, offset, value)
+						<storeValue>(slot, offset, <values>)
 					}
 				<!isByteArray>
 					let oldLen := sload(array)
 					if iszero(lt(oldLen, <maxArrayLength>)) { <panic>() }
 					sstore(array, add(oldLen, 1))
 					let slot, offset := <indexAccess>(array, oldLen)
-					<storeValue>(slot, offset, value)
+					<storeValue>(slot, offset, <values>)
 				</isByteArray>
 			})")
 			("functionName", functionName)
+			("values", suffixedVariableNameList("value", 0, _fromType->sizeOnStack()))
 			("panic", panicFunction(PanicCode::ResourceError))
 			("extractByteArrayLength", _type.isByteArray() ? extractByteArrayLengthFunction() : "")
 			("dataAreaFunction", arrayDataAreaFunction(_type))

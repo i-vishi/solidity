@@ -203,6 +203,8 @@ public:
 	std::string storageArrayPopFunction(ArrayType const& _type);
 
 	/// @returns the name of a function that pushes an element to a storage array
+	/// _fromType represents type of value passed to the function (type of element being pushed)
+	/// if _fromType is reference type function will perform deep copy
 	/// signature: (array, value)
 	std::string storageArrayPushFunction(ArrayType const& _type, TypePointer _fromType = nullptr);
 
