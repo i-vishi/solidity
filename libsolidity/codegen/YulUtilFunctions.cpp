@@ -1380,14 +1380,14 @@ string YulUtilFunctions::storageByteArrayPopFunction(ArrayType const& _type)
 	});
 }
 
-string YulUtilFunctions::storageArrayPushFunction(ArrayType const& _type, TypePointer _fromType)
+string YulUtilFunctions::storageArrayPushFunction(ArrayType const& _type, Type const* _fromType)
 {
 	solAssert(_type.location() == DataLocation::Storage, "");
 	solAssert(_type.isDynamicallySized(), "");
-	if (_fromType && _fromType->isValueType())
-		solUnimplementedAssert(*_fromType == *_type.baseType(), "");
 	if (!_fromType)
 		_fromType = _type.baseType();
+	else if (_fromType->isValueType())
+		solUnimplementedAssert(*_fromType == *_type.baseType(), "");
 
 	string functionName =
 		string{"array_push_from_"} +
@@ -2539,49 +2539,32 @@ string YulUtilFunctions::updateStorageValueFunction(
 			fromReferenceType->location(),
 			fromReferenceType->isPointer()
 		).get() == *fromReferenceType, "");
+
 		solAssert(toReferenceType->category() == fromReferenceType->category(), "");
+		solAssert(_offset.value_or(0) == 0, "");
 
-		if (_toType.category() == Type::Category::Array)
-		{
-			solAssert(_offset.value_or(0) == 0, "");
-
-			Whiskers templ(R"(
-				function <functionName>(slot, <?dynamicOffset>offset, </dynamicOffset><value>) {
-					<?dynamicOffset>if offset { <panic>() }</dynamicOffset>
-					<copyArrayToStorage>(slot, <value>)
-				}
-			)");
-			templ("functionName", functionName);
-			templ("dynamicOffset", !_offset.has_value());
-			templ("panic", panicFunction(PanicCode::Generic));
-			templ("value", suffixedVariableNameList("value_", 0, _fromType.sizeOnStack()));
-			templ("copyArrayToStorage", copyArrayToStorageFunction(
+		Whiskers templ(R"(
+			function <functionName>(slot, <?dynamicOffset>offset, </dynamicOffset><value>) {
+				<?dynamicOffset>if offset { <panic>() }</dynamicOffset>
+				<copyToStorage>(slot, <value>)
+			}
+		)");
+		templ("functionName", functionName);
+		templ("dynamicOffset", !_offset.has_value());
+		templ("panic", panicFunction(PanicCode::Generic));
+		templ("value", suffixedVariableNameList("value_", 0, _fromType.sizeOnStack()));
+		if (_fromType.category() == Type::Category::Array)
+			templ("copyToStorage", copyArrayToStorageFunction(
 				dynamic_cast<ArrayType const&>(_fromType),
 				dynamic_cast<ArrayType const&>(_toType)
 			));
-
-			return templ.render();
-		}
 		else
-		{
-			solAssert(_toType.category() == Type::Category::Struct, "");
+			templ("copyToStorage", copyStructToStorageFunction(
+				dynamic_cast<StructType const&>(_fromType),
+				dynamic_cast<StructType const&>(_toType)
+			));
 
-			auto const& fromStructType = dynamic_cast<StructType const&>(_fromType);
-			auto const& toStructType = dynamic_cast<StructType const&>(_toType);
-			solAssert(_offset.value_or(0) == 0, "");
-
-			Whiskers templ(R"(
-				function <functionName>(slot, <?dynamicOffset>offset, </dynamicOffset>value) {
-					<?dynamicOffset>if offset { <panic>() }</dynamicOffset>
-					<copyStructToStorage>(slot, value)
-				}
-			)");
-			templ("functionName", functionName);
-			templ("dynamicOffset", !_offset.has_value());
-			templ("panic", panicFunction(util::PanicCode::Generic));
-			templ("copyStructToStorage", copyStructToStorageFunction(fromStructType, toStructType));
-			return templ.render();
-		}
+		return templ.render();
 	});
 }
 

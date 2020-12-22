@@ -203,8 +203,8 @@ public:
 	std::string storageArrayPopFunction(ArrayType const& _type);
 
 	/// @returns the name of a function that pushes an element to a storage array
-	/// _fromType represents type of value passed to the function (type of element being pushed)
-	/// if _fromType is reference type function will perform deep copy
+/// @param _fromType represents the type of the element being pushed.
+/// If _fromType is ReferenceType the function will perform deep copy.
 	/// signature: (array, value)
 	std::string storageArrayPushFunction(ArrayType const& _type, TypePointer _fromType = nullptr);
 
@@ -476,7 +476,7 @@ public:
 	std::string externalCodeFunction();
 
 private:
-	/// @returns function that copies struct to storage
+/// @returns the name of a function that copies a struct from calldata or memory to storage
 	/// signature: (slot, value) ->
 	std::string copyStructToStorageFunction(StructType const& _from, StructType const& _to);
 

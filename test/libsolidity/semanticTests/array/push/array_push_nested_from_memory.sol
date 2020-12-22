@@ -3,6 +3,7 @@ contract C {
     uint120[][] s;
     uint8 a = 17;
     function f() public returns(uint120) {
+        delete s;
         uint120[] memory m = new uint120[](3);
         m[0] = 1;
         s.push(m);
