@@ -192,14 +192,18 @@ Array Literals
 ^^^^^^^^^^^^^^
 
 An array literal is a comma-separated list of one or more expressions, enclosed
-in square brackets (``[...]``). For example ``[1, a, f(3)]``. There must be a
-common type all elements can be implicitly converted to. This is the elementary
-type of the array.
+in square brackets (``[...]``). For example ``[1, a, f(3)]``. The type of the
+array literal is determined as follows:
 
-Array literals are always statically-sized memory arrays.
+It is always a statically-sized memory array with a length being equal to the
+number of expressions.
+
+The base type of the array is the type of one of the expressions such that all
+other expressions can be implicitly converted to it. It is a type error
+if this is not possible.
 
 In the example below, the type of ``[1, 2, 3]`` is
-``uint8[3] memory``. Because the type of each of these constants is ``uint8``, if
+``uint8[3] memory``, because the type of each of these constants is ``uint8``. If
 you want the result to be a ``uint[3] memory`` type, you need to convert
 the first element to ``uint``.
 
@@ -216,6 +220,10 @@ the first element to ``uint``.
             // ...
         }
     }
+
+The array literal ``[1, -1]`` is invalid because the type of the first expression
+is ``uint8`` while the type of the second is ``int8`` and they cannot be implicitly
+converted to each other. To make it work, you can use ``[int8(1), -1]``, for example.
 
 Fixed size memory arrays cannot be assigned to dynamically-sized
 memory arrays, i.e. the following is not possible:
